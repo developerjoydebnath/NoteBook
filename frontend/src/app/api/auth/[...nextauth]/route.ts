@@ -21,11 +21,14 @@ export const authOptions: NextAuthOptions = {
 
         const data = await res.json();
 
-        if (res.ok && data.user) {
+        if (res.ok && data.accessToken) {
           return {
-            ...data.user,
+            id: data._id,
+            username: data.username,
+            email: data.email,
+            role: data.role,
             accessToken: data.accessToken,
-          };
+          } as any;
         }
         return null;
       },
