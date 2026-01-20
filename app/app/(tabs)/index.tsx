@@ -1,47 +1,21 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Text } from '@/components/ui/text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import api from '@/lib/api';
-import { FileText, Link as LinkIcon, Loader2, PieChart as PieChartIcon, TrendingUp } from 'lucide-react-native';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Dimensions, RefreshControl, ScrollView, View } from 'react-native';
-import { BarChart, PieChart } from 'react-native-chart-kit';
-
-type ActivityData = {
-  date: string;
-  notes: number;
-  [key: string]: any;
-};
-
-type CategoryStat = {
-  _id: string;
-  name: string;
-  count: number;
-  [key: string]: any;
-};
-
-type DashboardStats = {
-  totalNotes: number;
-  totalLinks: number;
-  activityData: ActivityData[];
-  categoryStats: CategoryStat[];
-};
-
-const screenWidth = Dimensions.get('window').width;
+import { FileText, Link as LinkIcon } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
+// import { BarChart, PieChart } from 'react-native-gifted-charts';
+import { api } from '../../lib/api';
+import { useDataStore } from '../../store/useDataStore';
 
 export default function DashboardScreen() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const { stats, setStats } = useDataStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? 'dark' : 'light';
 
   const fetchStats = async () => {
     try {
-      const res = await api.get('/dashboard/stats');
-      setStats(res.data);
-    } catch (err) {
-      console.error('Failed to fetch stats:', err);
+      const response = await api.get('/dashboard/stats');
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -52,139 +26,114 @@ export default function DashboardScreen() {
     fetchStats();
   }, []);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = () => {
     setRefreshing(true);
     fetchStats();
-  }, []);
-
-  const activityData = stats?.activityData || [];
-  const categoryColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-  const categoryStats = stats?.categoryStats || [];
-
-  // Prepare bar chart data
-  const barChartData = {
-    labels: activityData.slice(-7).map((d) => d.date.slice(-5)), // Last 7 days, show MM-DD
-    datasets: [
-      {
-        data: activityData.slice(-7).map((d) => d.notes || 0),
-      },
-    ],
   };
 
-  // Prepare pie chart data
-  const pieChartData = categoryStats.slice(0, 6).map((cat, i) => ({
-    name: cat.name,
-    population: cat.count,
-    color: categoryColors[i % categoryColors.length],
-    legendFontColor: theme === 'dark' ? '#94a3b8' : '#64748b',
-    legendFontSize: 12,
-  }));
-
-  const chartConfig = {
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-    backgroundGradientFrom: theme === 'dark' ? '#1e293b' : '#ffffff',
-    backgroundGradientTo: theme === 'dark' ? '#1e293b' : '#ffffff',
-    decimalPlaces: 0,
-    color: (opacity = 1) => (theme === 'dark' ? `rgba(59, 130, 246, ${opacity})` : `rgba(37, 99, 235, ${opacity})`),
-    labelColor: (opacity = 1) => (theme === 'dark' ? `rgba(148, 163, 184, ${opacity})` : `rgba(100, 116, 139, ${opacity})`),
-    style: {
-      borderRadius: 16,
-    },
-    propsForBackgroundLines: {
-      strokeDasharray: '',
-      stroke: theme === 'dark' ? '#334155' : '#e2e8f0',
-    },
-  };
-
-  if (loading && !refreshing) {
+  if (loading) {
     return (
-      <View className="flex-1 bg-background items-center justify-center">
-        <Loader2 size={32} className="text-primary animate-spin" />
+      <View className="flex-1 justify-center items-center bg-gray-50">
+        <ActivityIndicator size="large" color="#3b82f6" />
       </View>
     );
   }
 
+  const barData = stats?.activityData?.map((item: any) => ({
+    value: item.notes + item.links,
+    label: item.date,
+    frontColor: '#3b82f6',
+  })) || [];
+
+  const pieData = stats?.categoryStats?.map((item: any, index: number) => ({
+    value: item.count,
+    text: item.name,
+    color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5],
+  })) || [];
+
   return (
     <ScrollView
-      className="flex-1 bg-background p-4"
+      className="flex-1 bg-gray-50 p-4"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View className="mb-6">
-        <Text className="text-2xl font-bold">Workspace Overview</Text>
-        <Text className="text-muted-foreground">Keep track of your productivity</Text>
+        <Text className="text-2xl font-bold text-gray-900">Overview</Text>
+        <Text className="text-gray-500">Your activity at a glance</Text>
       </View>
 
-      <View className="flex-row gap-4 mb-6">
-        <Card className="flex-1 border-border">
-          <CardHeader className="flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Total Notes</CardTitle>
-            <FileText size={16} className="text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <Text className="text-2xl font-bold">{stats?.totalNotes || 0}</Text>
-          </CardContent>
-        </Card>
+      <View className="flex-row justify-between mb-6">
+        <View className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex-1 mr-2 items-center">
+          <View className="bg-blue-100 p-2 rounded-full mb-2">
+            <FileText size={20} color="#3b82f6" />
+          </View>
+          <Text className="text-2xl font-bold text-gray-900">{stats?.totalNotes || 0}</Text>
+          <Text className="text-gray-500 text-xs">Total Notes</Text>
+        </View>
 
-        <Card className="flex-1 border-border">
-          <CardHeader className="flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Total Links</CardTitle>
-            <LinkIcon size={16} className="text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <Text className="text-2xl font-bold">{stats?.totalLinks || 0}</Text>
-          </CardContent>
-        </Card>
+        <View className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex-1 ml-2 items-center">
+          <View className="bg-green-100 p-2 rounded-full mb-2">
+            <LinkIcon size={20} color="#10b981" />
+          </View>
+          <Text className="text-2xl font-bold text-gray-900">{stats?.totalLinks || 0}</Text>
+          <Text className="text-gray-500 text-xs">Total Links</Text>
+        </View>
       </View>
 
-      <Card className="mb-6 border-border">
-        <CardHeader className="flex-row items-center gap-2">
-          <TrendingUp size={18} className="text-primary" />
-          <CardTitle>Activity Trend</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {activityData.length > 0 ? (
-            <BarChart
-              data={barChartData}
-              width={screenWidth - 64}
-              height={200}
-              yAxisLabel=""
-              yAxisSuffix=""
-              chartConfig={chartConfig}
-              style={{ borderRadius: 8 }}
-              fromZero
-            />
-          ) : (
-            <View className="h-[200] items-center justify-center">
-              <Text className="text-muted-foreground">No recent activity</Text>
-            </View>
-          )}
-        </CardContent>
-      </Card>
+      <View className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
+        <Text className="text-lg font-bold text-gray-900 mb-4 flex-row items-center">
+          Weekly Activity
+        </Text>
+        {/* {barData.length > 0 ? (
+          <BarChart
+            data={barData}
+            barWidth={22}
+            noOfSections={3}
+            barBorderRadius={4}
+            frontColor="#3b82f6"
+            yAxisThickness={0}
+            xAxisThickness={0}
+            hideRules
+          />
+        ) : (
+          <Text className="text-gray-400 text-center py-10">No activity data</Text>
+        )} */}
+        <Text className="text-gray-400 text-center py-10">Chart disabled temporarily</Text>
+      </View>
 
-      <Card className="mb-10 border-border">
-        <CardHeader className="flex-row items-center gap-2">
-          <PieChartIcon size={18} className="text-primary" />
-          <CardTitle>Content Distribution</CardTitle>
-        </CardHeader>
-        <CardContent className="items-center">
-          {categoryStats.length > 0 ? (
+      <View className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-10">
+        <Text className="text-lg font-bold text-gray-900 mb-4">Categories</Text>
+        <View className="items-center">
+          {/* {pieData.length > 0 ? (
             <PieChart
-              data={pieChartData}
-              width={screenWidth - 64}
-              height={180}
-              chartConfig={chartConfig}
-              accessor="population"
-              backgroundColor="transparent"
-              paddingLeft="0"
-              absolute
+              data={pieData}
+              donut
+              radius={90}
+              innerRadius={60}
+              innerCircleColor={'white'}
+              centerLabelComponent={() => {
+                return (
+                  <View className="items-center justify-center">
+                    <Text className="text-lg font-bold">{(stats?.totalNotes || 0) + (stats?.totalLinks || 0)}</Text>
+                    <Text className="text-xs text-gray-500">Items</Text>
+                  </View>
+                );
+              }}
             />
           ) : (
-            <View className="h-[150] items-center justify-center">
-              <Text className="text-muted-foreground">No data available</Text>
+            <Text className="text-gray-400 text-center py-10">No category data</Text>
+          )} */}
+          <Text className="text-gray-400 text-center py-10">Chart disabled temporarily</Text>
+        </View>
+        <View className="mt-4">
+          {pieData.map((item: any, index: number) => (
+            <View key={index} className="flex-row items-center mb-1">
+              <View style={{ backgroundColor: item.color }} className="w-3 h-3 rounded-full mr-2" />
+              <Text className="text-gray-600 text-xs flex-1">{item.text}</Text>
+              <Text className="text-gray-900 text-xs font-bold">{item.value}</Text>
             </View>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </View>
+      </View>
     </ScrollView>
   );
 }

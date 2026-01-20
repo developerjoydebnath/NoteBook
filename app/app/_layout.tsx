@@ -1,45 +1,34 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuthStore } from '@/store/useAuthStore';
-import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
-import { PortalHost } from '@rn-primitives/portal';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import React, { PropsWithChildren, useEffect } from 'react';
-import '../global.css';
+import { Buffer } from 'buffer';
+global.Buffer = Buffer;
 
-// Type-cast ThemeProvider to accept children prop properly
-const ThemeProvider = NavigationThemeProvider as React.FC<PropsWithChildren<{ value: typeof DarkTheme | typeof DefaultTheme }>>;
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { useEffect } from 'react';
+import '../global.css';
+import { useAuthStore } from '../store/useAuthStore';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const { isAuthenticated } = useAuthStore();
+  const { accessToken } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    const inAuthGroup = segments[0] === '(tabs)';
+    const inAuthGroup = segments[0] === '(tabs)' || segments[0] === 'modal';
 
-    if (!isAuthenticated && inAuthGroup) {
-      // Redirect to the login page if the user is not authenticated
+    if (!accessToken && inAuthGroup) {
       router.replace('/login');
-    } else if (isAuthenticated && !inAuthGroup) {
-      // Redirect to the dashboard if the user is already authenticated
+    } else if (accessToken && segments[0] !== '(tabs)') {
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, segments, router]);
+  }, [accessToken, segments]);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="login" />
-        <Stack.Screen name="register" />
-        <Stack.Screen name="forgot-password" />
-        <Stack.Screen name="reset-password" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-      <PortalHost />
-    </ThemeProvider>
+    <Stack>
+      <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="register" options={{ headerShown: false }} />
+      <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+      <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Details' }} />
+    </Stack>
   );
 }

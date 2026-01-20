@@ -1,129 +1,101 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Text } from '@/components/ui/text';
-import api from '@/lib/api';
 import { useRouter } from 'expo-router';
-import { ExternalLink, Link as LinkIcon, Loader2, MoreVertical, Plus, Search } from 'lucide-react-native';
-import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, Linking, RefreshControl, TouchableOpacity, View } from 'react-native';
+import { ChevronRight, Link as LinkIcon, Plus, Search } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { FlatList, RefreshControl, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { api } from '../../lib/api';
+import { useDataStore } from '../../store/useDataStore';
 
 export default function LinksScreen() {
-  const router = useRouter();
-  const [links, setLinks] = useState<any[]>([]);
+  const { links, setLinks } = useDataStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const router = useRouter();
 
-  const fetchLinks = useCallback(async () => {
+  const fetchLinks = async () => {
     try {
-      const res = await api.get('/links', { params: { search } });
-      setLinks(res.data);
-    } catch (err) {
-      console.error('Failed to fetch links:', err);
+      const response = await api.get('/links');
+      setLinks(response.data);
+    } catch (error) {
+      console.error('Error fetching links:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [search]);
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchLinks();
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [fetchLinks]);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchLinks();
-  }, [fetchLinks]);
-
-  const openLink = (url: string) => {
-    Linking.openURL(url).catch((err) => console.error('Failed to open link:', err));
   };
 
+  useEffect(() => {
+    fetchLinks();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchLinks();
+  };
+
+  const filteredLinks = links.filter(link =>
+    link.title.toLowerCase().includes(search.toLowerCase()) ||
+    link.url.toLowerCase().includes(search.toLowerCase())
+  );
+
   const renderLink = ({ item }: { item: any }) => (
-    <Card className="mb-4 border-border">
-      <CardHeader className="flex-row justify-between items-start pb-2">
+    <TouchableOpacity
+      className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-3"
+      onPress={() => router.push({ pathname: '/modal', params: { type: 'link', id: item._id } })}
+    >
+      <View className="flex-row items-center">
+        <View className="bg-green-100 p-2 rounded-lg mr-3">
+          <LinkIcon size={20} color="#10b981" />
+        </View>
         <View className="flex-1">
-          <CardTitle className="text-lg" numberOfLines={1}>{item.title}</CardTitle>
-          <TouchableOpacity onPress={() => openLink(item.url)} className="flex-row items-center gap-1 mt-1">
-            <Text className="text-xs text-primary" numberOfLines={1}>
-              {item.url}
-            </Text>
-            <ExternalLink size={12} className="text-primary" />
-          </TouchableOpacity>
+          <Text className="text-lg font-bold text-gray-900 mb-0.5" numberOfLines={1}>{item.title}</Text>
+          <Text className="text-blue-500 text-xs" numberOfLines={1}>{item.url}</Text>
+          <View className="flex-row items-center mt-2">
+            <View className="bg-gray-100 px-2 py-0.5 rounded-md">
+              <Text className="text-gray-500 text-[10px]">{item.categoryId?.name || 'Bookmarks'}</Text>
+            </View>
+          </View>
         </View>
-        <TouchableOpacity className="p-1">
-          <MoreVertical size={20} className="text-muted-foreground" />
-        </TouchableOpacity>
-      </CardHeader>
-      <CardContent>
-        {item.description ? (
-          <Text className="text-sm text-muted-foreground mb-3" numberOfLines={2}>
-            {item.description}
-          </Text>
-        ) : null}
-        <View className="flex-row justify-between items-center">
-          <Badge variant="outline">
-            <Text className="text-[10px] font-bold uppercase">{item.category?.name || 'General'}</Text>
-          </Badge>
-          <Button variant="ghost" size="sm" onPress={() => openLink(item.url)}>
-            <Text className="text-primary">Visit Link</Text>
-          </Button>
-        </View>
-      </CardContent>
-    </Card>
+        <ChevronRight size={20} color="#cbd5e1" className="ml-2" />
+      </View>
+    </TouchableOpacity>
   );
 
   return (
-    <View className="flex-1 bg-background">
-      <View className="p-4 gap-y-4">
-        <View className="flex-row justify-between items-center">
-          <View>
-            <Text className="text-2xl font-bold">Safe Links</Text>
-            <Text className="text-muted-foreground">Manage your bookmarks</Text>
-          </View>
-          <Button size="icon" className="rounded-full" onPress={() => router.push('/modal?type=link')}>
-            <Plus size={24} color="white" />
-          </Button>
-        </View>
-
-        <View className="relative">
-          <View className="absolute left-3 top-3 z-10">
-            <Search size={18} className="text-muted-foreground" />
-          </View>
-          <Input
-            placeholder="Search links..."
-            className="pl-10"
+    <View className="flex-1 bg-gray-50">
+      <View className="p-4 bg-white border-b border-gray-200">
+        <View className="flex-row items-center bg-gray-100 px-3 rounded-xl border border-gray-200">
+          <Search size={20} color="#94a3b8" />
+          <TextInput
+            className="flex-1 p-2 text-gray-900"
+            placeholder="Search bookmarks..."
             value={search}
             onChangeText={setSearch}
           />
         </View>
       </View>
 
-      {loading && !refreshing ? (
-        <View className="flex-1 items-center justify-center">
-          <Loader2 size={32} className="text-primary animate-spin" />
-        </View>
-      ) : (
-        <FlatList
-          data={links}
-          renderItem={renderLink}
-          keyExtractor={(item) => item._id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          ListEmptyComponent={
-            <View className="items-center justify-center py-20">
-              <LinkIcon size={48} className="text-muted-foreground/20 mb-4" />
-              <Text className="text-muted-foreground">No links found</Text>
+      <FlatList
+        data={filteredLinks}
+        keyExtractor={(item) => item._id}
+        renderItem={renderLink}
+        contentContainerStyle={{ padding: 16 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListEmptyComponent={
+          !loading ? (
+            <View className="items-center justify-center mt-10">
+              <Text className="text-gray-400">No bookmarks found</Text>
             </View>
-          }
-        />
-      )}
+          ) : null
+        }
+      />
+
+      <TouchableOpacity
+        className="absolute bottom-6 right-6 bg-green-600 w-14 h-14 rounded-full shadow-lg items-center justify-center"
+        onPress={() => router.push({ pathname: '/modal', params: { type: 'link', action: 'add' } })}
+      >
+        <Plus size={30} color="white" />
+      </TouchableOpacity>
     </View>
   );
 }

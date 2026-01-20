@@ -1,41 +1,29 @@
-import { useAuthStore } from '@/store/useAuthStore';
 import axios from 'axios';
+import { useAuthStore } from '../store/useAuthStore';
 
-// For physical devices or emulators, use your machine's IP address
-// Detected from terminal log: 10.142.3.35
-const BASE_URL = 'http://10.142.3.35:5000/api';
+// In Expo development, use your computer's IP address instead of localhost
+// 192.168.1.108 is the current machine's IP
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.108:5000/api';
 
-const api = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+export const api = axios.create({
+  baseURL: API_URL,
 });
 
-// Request Interceptor
-api.interceptors.request.use(
-  (config) => {
-    const token = useAuthStore.getState().accessToken;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+api.interceptors.request.use(async (config) => {
+  const token = useAuthStore.getState().accessToken;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-);
+  return config;
+});
 
-// Response Interceptor
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
-      // Auto logout on 401 Unauthorized
-      useAuthStore.getState().logout();
+      // Handle logout
+      useAuthStore.getState().clearAuth();
     }
     return Promise.reject(error);
   }
 );
-
-export default api;

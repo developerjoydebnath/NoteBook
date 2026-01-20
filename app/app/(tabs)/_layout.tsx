@@ -1,57 +1,38 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { Tabs } from 'expo-router';
-import { FileText, LayoutDashboard, Link as LinkIcon, User } from 'lucide-react-native';
-import React from 'react';
+import { FileText, LayoutDashboard, Link, User } from 'lucide-react-native';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
-
+export default function TabsLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.text + '80',
-        tabBarStyle: {
-          backgroundColor: theme.colors.card,
-          borderTopColor: theme.colors.border,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        headerStyle: {
-          backgroundColor: theme.colors.card,
-        },
-        headerTintColor: theme.colors.text,
-      }}
-    >
+    <Tabs screenOptions={{
+      tabBarActiveTintColor: '#3b82f6',
+      headerShown: true,
+    }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ color, size }) => <LayoutDashboard size={size} color={color} />,
+          tabBarIcon: ({ color }) => <LayoutDashboard size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="notes"
         options={{
           title: 'Notes',
-          tabBarIcon: ({ color, size }) => <FileText size={size} color={color} />,
+          tabBarIcon: ({ color }) => <FileText size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="links"
         options={{
           title: 'Links',
-          tabBarIcon: ({ color, size }) => <LinkIcon size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Link size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+          tabBarIcon: ({ color }) => <User size={24} color={color} />,
         }}
       />
     </Tabs>
