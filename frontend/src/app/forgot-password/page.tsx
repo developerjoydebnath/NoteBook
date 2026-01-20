@@ -89,6 +89,7 @@ export default function ForgotPasswordPage() {
             <p className="text-sm font-medium mb-2">Development Reset Link (Token):</p>
             <p className="text-xs text-muted-foreground mb-2">In development, we display the token here. Click to go to reset page.</p>
             <Link
+              prefetch={false}
               href={`/reset-password/${resetToken}`}
               className="text-sm text-primary underline break-all"
             >
@@ -98,7 +99,7 @@ export default function ForgotPasswordPage() {
         )}
 
         <div className="text-center">
-          <Link href="/login" className="text-sm font-medium text-primary hover:underline">
+          <Link prefetch={false} href="/login" className="text-sm font-medium text-primary hover:underline">
             Back to login
           </Link>
         </div>

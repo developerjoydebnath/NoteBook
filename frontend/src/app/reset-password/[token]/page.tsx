@@ -114,7 +114,7 @@ export default function ResetPasswordPage() {
         </form>
 
         <div className="text-center">
-          <Link href="/login" className="text-sm font-medium text-primary hover:underline">
+          <Link prefetch={false} href="/login" className="text-sm font-medium text-primary hover:underline">
             Back to login
           </Link>
         </div>

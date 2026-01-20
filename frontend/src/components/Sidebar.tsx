@@ -40,7 +40,7 @@ export default function Sidebar() {
             variant={pathname === item.path ? "default" : "ghost"}
             className="w-full justify-start font-medium gap-3"
           >
-            <Link href={item.path}>
+            <Link prefetch={false} href={item.path}>
               <item.icon className="size-4" />
               {item.name}
             </Link>
@@ -79,7 +79,7 @@ export default function Sidebar() {
             </Button>
           </div>
         </div>
-        
+
         <Button
           variant="ghost"
           onClick={() => signOut({ callbackUrl: '/login' })}

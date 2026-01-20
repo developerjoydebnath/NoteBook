@@ -73,6 +73,7 @@ export default function LoginPage() {
                   Password
                 </label>
                 <Link
+                  prefetch={false}
                   href="/forgot-password"
                   className="text-sm font-medium text-primary hover:underline"
                 >
@@ -104,7 +105,7 @@ export default function LoginPage() {
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-medium text-primary hover:underline">
+            <Link prefetch={false} href="/register" className="font-medium text-primary hover:underline">
               Create account
             </Link>
           </p>
