@@ -15,7 +15,7 @@ export default function LinksScreen() {
   const fetchLinks = async () => {
     try {
       const response = await api.get('/links');
-      setLinks(response.data);
+      setLinks(response?.data?.links || []);
     } catch (error) {
       console.error('Error fetching links:', error);
     } finally {

@@ -11,14 +11,14 @@ import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useState } from 'react';
 
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,12 +26,17 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function NotesPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { layoutMode } = useUIStore();
-  const { notes, categories, fetched, setNotes, setCategories } = useDataStore();
+  const notes = useDataStore((state) => state.notes);
+  const categories = useDataStore((state) => state.categories);
+  const notesFetched = useDataStore((state) => state.fetched.notes);
+  const setNotes = useDataStore((state) => state.setNotes);
+  const setCategories = useDataStore((state) => state.setCategories);
+
   const [activeCategory, setActiveCategory] = useState('all');
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(!fetched.notes);
+  const [loading, setLoading] = useState(!notesFetched);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -44,10 +49,10 @@ export default function NotesPage() {
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
 
-  const fetchNotes = useCallback(async (force = false) => {
-    if (!session || (fetched.notes && !force && activeCategory === 'all' && !search && page === 1)) return;
-    
-    if (force || !fetched.notes || activeCategory !== 'all' || search || page !== 1) setLoading(true);
+  const fetchNotes = useCallback(async () => {
+    if (status !== 'authenticated' || !session) return;
+
+    setLoading(true);
     try {
       const catQuery = activeCategory === 'all' ? '' : `&category=${activeCategory}`;
       const searchQuery = search ? `&search=${search}` : '';
@@ -68,10 +73,10 @@ export default function NotesPage() {
     } finally {
       setLoading(false);
     }
-  }, [session, activeCategory, search, page, fetched.notes, setNotes]);
+  }, [session?.user, status, activeCategory, search, page, setNotes]);
 
-  const fetchCategories = useCallback(async (force = false) => {
-    if (!session || (fetched.categories && !force)) return;
+  const fetchCategories = useCallback(async () => {
+    if (status !== 'authenticated' || !session) return;
     try {
       const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/categories?type=note`, {
         headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
@@ -83,7 +88,7 @@ export default function NotesPage() {
     } catch (err) {
       console.error('Failed to fetch categories:', err);
     }
-  }, [session, fetched.categories, setCategories]);
+  }, [session?.user, status, setCategories]);
 
   const handleDeleteNote = async () => {
     if (!noteToDelete) return;
@@ -92,7 +97,7 @@ export default function NotesPage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
       }, (session as any)?.accessToken);
-      if (res && res.ok) fetchNotes(true);
+      if (res && res.ok) fetchNotes();
     } catch (err) {
       console.error('Delete failed:', err);
     } finally {
@@ -109,8 +114,8 @@ export default function NotesPage() {
       }, (session as any)?.accessToken);
       if (res && res.ok) {
         if (activeCategory === categoryToDelete._id) setActiveCategory('all');
-        fetchCategories(true);
-        fetchNotes(true);
+        fetchCategories();
+        fetchNotes();
       }
     } catch (err) {
       console.error('Delete failed:', err);
@@ -130,9 +135,16 @@ export default function NotesPage() {
   };
 
   useEffect(() => {
-    fetchNotes();
-    fetchCategories();
-  }, [fetchNotes, fetchCategories]);
+    if (status === 'authenticated') {
+      fetchNotes();
+    }
+  }, [status, fetchNotes]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchCategories();
+    }
+  }, [status, fetchCategories]);
 
   return (
     <AppLayout>
@@ -143,15 +155,15 @@ export default function NotesPage() {
             <p className="text-muted-foreground">Manage and organize your thoughts</p>
           </div>
           <div className="flex gap-3 w-full sm:w-auto">
-             <Button 
-                variant="outline"
-                onClick={() => setIsCatModalOpen(true)}
-                className="flex-1 sm:flex-none gap-2"
-              >
+            <Button
+              variant="outline"
+              onClick={() => setIsCatModalOpen(true)}
+              className="flex-1 sm:flex-none gap-2"
+            >
               <FolderPlus className="size-4" />
               <span>New Category</span>
             </Button>
-            <Button 
+            <Button
               onClick={openAddNote}
               className="flex-1 sm:flex-none gap-2"
             >
@@ -166,7 +178,7 @@ export default function NotesPage() {
             <Button
               variant={activeCategory === 'all' ? "default" : "secondary"}
               size="sm"
-              onClick={() => {setActiveCategory('all'); setPage(1);}}
+              onClick={() => { setActiveCategory('all'); setPage(1); }}
               className="rounded-full px-4 h-8 shrink-0"
             >
               All
@@ -176,7 +188,7 @@ export default function NotesPage() {
                 <Button
                   variant={activeCategory === cat._id ? "default" : "secondary"}
                   size="sm"
-                  onClick={() => {setActiveCategory(cat._id); setPage(1);}}
+                  onClick={() => { setActiveCategory(cat._id); setPage(1); }}
                   className={`rounded-full h-8 whitespace-nowrap ${activeCategory === cat._id ? 'pr-8' : 'group-hover/cat:pr-8'} transition-all`}
                 >
                   {cat.name}
@@ -199,7 +211,7 @@ export default function NotesPage() {
               placeholder="Search notes..."
               className="pl-9"
               value={search}
-              onChange={(e) => {setSearch(e.target.value); setPage(1);}}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             />
           </div>
         </div>
@@ -227,34 +239,33 @@ export default function NotesPage() {
             {notes.map((note: any) => (
               <div
                 key={note._id}
-                className={`group bg-card border border-border rounded-lg shadow-xs hover:border-primary/50 transition-all flex flex-col ${
-                  layoutMode === 'list' ? 'flex-row items-center p-4' : 'p-6 h-full'
-                }`}
+                className={`group bg-card border border-border rounded-lg shadow-xs hover:border-primary/50 transition-all flex flex-col ${layoutMode === 'list' ? 'flex-row items-center p-4' : 'p-6 h-full'
+                  }`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-2 gap-2">
                     <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{note.title}</h3>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => openEditNote(note)}
                       ><Edit2 className="size-4" /></Button>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => setNoteToDelete(note._id)}
                       ><Trash2 className="size-4" /></Button>
                     </div>
                   </div>
-                  <div 
+                  <div
                     className={`text-muted-foreground text-sm line-clamp-3 mb-4 content-preview`}
                     dangerouslySetInnerHTML={{ __html: note.content }}
                   />
                 </div>
-                
+
                 <div className={`flex flex-wrap items-center gap-3 mt-auto pt-4 border-t border-border/50 text-xs text-muted-foreground ${layoutMode === 'list' ? 'mt-0 pt-0 border-t-0 border-l border-border pl-4 w-56 ml-4 shrink-0' : ''}`}>
                   <Badge variant="secondary" className="font-normal gap-1 px-2 py-0 h-5">
                     <Tag className="size-3" />
@@ -273,15 +284,15 @@ export default function NotesPage() {
         {totalPages > 1 && (
           <div className="flex justify-center gap-2 mt-8">
             {[...Array(totalPages)].map((_, i) => (
-                <Button
-                    key={i}
-                    variant={page === i + 1 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setPage(i + 1)}
-                    className="w-9 h-9 p-0"
-                >
-                    {i + 1}
-                </Button>
+              <Button
+                key={i}
+                variant={page === i + 1 ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPage(i + 1)}
+                className="w-9 h-9 p-0"
+              >
+                {i + 1}
+              </Button>
             ))}
           </div>
         )}
@@ -293,10 +304,10 @@ export default function NotesPage() {
           </div>
         )}
 
-        <NoteModal 
-          isOpen={isNoteModalOpen} 
-          onClose={() => setIsNoteModalOpen(false)} 
-          onSuccess={() => fetchNotes(true)}
+        <NoteModal
+          isOpen={isNoteModalOpen}
+          onClose={() => setIsNoteModalOpen(false)}
+          onSuccess={() => fetchNotes()}
           note={editingNote}
           categories={categories.note}
           accessToken={(session as any)?.accessToken}
@@ -305,7 +316,7 @@ export default function NotesPage() {
         <CategoryModal
           isOpen={isCatModalOpen}
           onClose={() => setIsCatModalOpen(false)}
-          onSuccess={() => fetchCategories(true)}
+          onSuccess={() => fetchCategories()}
           type="note"
           accessToken={(session as any)?.accessToken}
         />

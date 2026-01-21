@@ -15,9 +15,11 @@ export default function NotesScreen() {
   const fetchNotes = async () => {
     try {
       const response = await api.get('/notes');
-      setNotes(response.data);
+      console.log(response?.data?.notes);
+      setNotes(Array.isArray(response.data?.notes) ? response?.data?.notes : []);
     } catch (error) {
       console.error('Error fetching notes:', error);
+      setNotes([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -33,9 +35,9 @@ export default function NotesScreen() {
     fetchNotes();
   };
 
-  const filteredNotes = notes.filter(note =>
-    note.title.toLowerCase().includes(search.toLowerCase()) ||
-    note.content.toLowerCase().includes(search.toLowerCase())
+  const filteredNotes = (notes || []).filter(note =>
+    note.title?.toLowerCase().includes(search.toLowerCase()) ||
+    note.content?.toLowerCase().includes(search.toLowerCase())
   );
 
   const renderNote = ({ item }: { item: any }) => (

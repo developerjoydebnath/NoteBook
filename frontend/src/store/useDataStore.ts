@@ -11,7 +11,8 @@ interface DataState {
     notes: boolean;
     links: boolean;
     stats: boolean;
-    categories: boolean;
+    categoriesNote: boolean;
+    categoriesWebsite: boolean;
   };
   setUsers: (users: any[]) => void;
   setNotes: (notes: any[]) => void;
@@ -32,7 +33,8 @@ export const useDataStore = create<DataState>((set) => ({
     notes: false,
     links: false,
     stats: false,
-    categories: false,
+    categoriesNote: false,
+    categoriesWebsite: false,
   },
   setUsers: (users) => set((state) => ({ 
     users, 
@@ -52,7 +54,11 @@ export const useDataStore = create<DataState>((set) => ({
   })),
   setCategories: (type, categories) => set((state) => ({
     categories: { ...state.categories, [type]: categories },
-    fetched: { ...state.fetched, categories: true }
+    fetched: { 
+      ...state.fetched, 
+      categoriesNote: type === 'note' ? true : state.fetched.categoriesNote,
+      categoriesWebsite: type === 'website' ? true : state.fetched.categoriesWebsite
+    }
   })),
   clearData: () => set({
     users: [],
@@ -65,7 +71,8 @@ export const useDataStore = create<DataState>((set) => ({
       notes: false,
       links: false,
       stats: false,
-      categories: false,
+      categoriesNote: false,
+      categoriesWebsite: false,
     },
   }),
 }));

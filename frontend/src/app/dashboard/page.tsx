@@ -20,13 +20,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
-  const { stats, fetched, setStats } = useDataStore();
-  const [loading, setLoading] = useState(!fetched.stats);
+  const { data: session, status } = useSession();
+  const stats = useDataStore((state) => state.stats);
+  const statsFetched = useDataStore((state) => state.fetched.stats);
+  const setStats = useDataStore((state) => state.setStats);
+  const [loading, setLoading] = useState(!statsFetched);
 
   const fetchStats = useCallback(async (force = false) => {
-    if (!session || (fetched.stats && !force)) return;
-    
+    if (status !== 'authenticated' || !session) return;
+    if (statsFetched && !force) return;
+
     if (force) setLoading(true);
     try {
       const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/stats`, {
@@ -34,7 +37,7 @@ export default function DashboardPage() {
           Authorization: `Bearer ${(session as any)?.accessToken}`,
         },
       }, (session as any)?.accessToken);
-      
+
       if (res && res.ok) {
         const data = await res.json();
         setStats(data);
@@ -44,11 +47,13 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [session, fetched.stats, setStats]);
+  }, [session?.user, status, statsFetched, setStats]);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (status === 'authenticated') {
+      fetchStats();
+    }
+  }, [status, fetchStats]);
 
   if (loading) return (
     <AppLayout>
@@ -112,24 +117,24 @@ export default function DashboardPage() {
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stats?.activityData || []}>
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="#888888" 
-                      fontSize={12} 
-                      tickLine={false} 
-                      axisLine={false} 
+                    <XAxis
+                      dataKey="date"
+                      stroke="#888888"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
                     />
-                    <YAxis 
-                      stroke="#888888" 
-                      fontSize={12} 
-                      tickLine={false} 
-                      axisLine={false} 
+                    <YAxis
+                      stroke="#888888"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
                       tickFormatter={(value) => `${value}`}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'var(--card)', 
-                        borderColor: 'var(--border)', 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--card)',
+                        borderColor: 'var(--border)',
                         borderRadius: 'var(--radius)',
                         color: 'var(--foreground)',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'

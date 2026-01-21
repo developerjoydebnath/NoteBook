@@ -10,14 +10,14 @@ import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useState } from 'react';
 
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,11 +25,16 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function LinksPage() {
-  const { data: session } = useSession();
-  const { links, categories, fetched, setLinks, setCategories } = useDataStore();
+  const { data: session, status } = useSession();
+  const links = useDataStore((state) => state.links);
+  const categories = useDataStore((state) => state.categories);
+  const linksFetched = useDataStore((state) => state.fetched.links);
+  const setLinks = useDataStore((state) => state.setLinks);
+  const setCategories = useDataStore((state) => state.setCategories);
+
   const [activeCategory, setActiveCategory] = useState('all');
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(!fetched.links);
+  const [loading, setLoading] = useState(!linksFetched);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -42,10 +47,10 @@ export default function LinksPage() {
   const [linkToDelete, setLinkToDelete] = useState<string | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
 
-  const fetchLinks = useCallback(async (force = false) => {
-    if (!session || (fetched.links && !force && activeCategory === 'all' && !search && page === 1)) return;
-    
-    if (force || !fetched.links || activeCategory !== 'all' || search || page !== 1) setLoading(true);
+  const fetchLinks = useCallback(async () => {
+    if (status !== 'authenticated' || !session) return;
+
+    setLoading(true);
     try {
       const catQuery = activeCategory === 'all' ? '' : `&category=${activeCategory}`;
       const searchQuery = search ? `&search=${search}` : '';
@@ -66,10 +71,10 @@ export default function LinksPage() {
     } finally {
       setLoading(false);
     }
-  }, [session, activeCategory, search, page, fetched.links, setLinks]);
+  }, [session?.user, status, activeCategory, search, page, setLinks]);
 
-  const fetchCategories = useCallback(async (force = false) => {
-    if (!session || (fetched.categories && !force)) return;
+  const fetchCategories = useCallback(async () => {
+    if (status !== 'authenticated' || !session) return;
     try {
       const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/categories?type=website`, {
         headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
@@ -81,7 +86,7 @@ export default function LinksPage() {
     } catch (err) {
       console.error('Failed to fetch categories:', err);
     }
-  }, [session, fetched.categories, setCategories]);
+  }, [session?.user, status, setCategories]);
 
   const handleDeleteLink = async () => {
     if (!linkToDelete) return;
@@ -90,7 +95,7 @@ export default function LinksPage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
       }, (session as any)?.accessToken);
-      if (res && res.ok) fetchLinks(true);
+      if (res && res.ok) fetchLinks();
     } catch (err) {
       console.error('Delete failed:', err);
     } finally {
@@ -107,8 +112,8 @@ export default function LinksPage() {
       }, (session as any)?.accessToken);
       if (res && res.ok) {
         if (activeCategory === categoryToDelete._id) setActiveCategory('all');
-        fetchCategories(true);
-        fetchLinks(true);
+        fetchCategories();
+        fetchLinks();
       }
     } catch (err) {
       console.error('Delete failed:', err);
@@ -128,9 +133,16 @@ export default function LinksPage() {
   };
 
   useEffect(() => {
-    fetchLinks();
-    fetchCategories();
-  }, [fetchLinks, fetchCategories]);
+    if (status === 'authenticated') {
+      fetchLinks();
+    }
+  }, [status, fetchLinks]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchCategories();
+    }
+  }, [status, fetchCategories]);
 
   return (
     <AppLayout>
@@ -141,7 +153,7 @@ export default function LinksPage() {
             <p className="text-muted-foreground">Manage your favorite bookmarks</p>
           </div>
           <div className="flex gap-3 w-full sm:w-auto">
-            <Button 
+            <Button
               variant="outline"
               onClick={() => setIsCatModalOpen(true)}
               className="flex-1 sm:flex-none gap-2"
@@ -149,7 +161,7 @@ export default function LinksPage() {
               <FolderPlus className="size-4" />
               <span>New Category</span>
             </Button>
-            <Button 
+            <Button
               onClick={openAddLink}
               className="flex-1 sm:flex-none gap-2"
             >
@@ -164,7 +176,7 @@ export default function LinksPage() {
             <Button
               variant={activeCategory === 'all' ? "default" : "secondary"}
               size="sm"
-              onClick={() => {setActiveCategory('all'); setPage(1);}}
+              onClick={() => { setActiveCategory('all'); setPage(1); }}
               className="rounded-full px-4 h-8 shrink-0"
             >
               All
@@ -174,7 +186,7 @@ export default function LinksPage() {
                 <Button
                   variant={activeCategory === cat._id ? "default" : "secondary"}
                   size="sm"
-                  onClick={() => {setActiveCategory(cat._id); setPage(1);}}
+                  onClick={() => { setActiveCategory(cat._id); setPage(1); }}
                   className={`rounded-full h-8 whitespace-nowrap ${activeCategory === cat._id ? 'pr-8' : 'group-hover/cat:pr-8'} transition-all`}
                 >
                   {cat.name}
@@ -197,7 +209,7 @@ export default function LinksPage() {
               placeholder="Search links..."
               className="pl-9"
               value={search}
-              onChange={(e) => {setSearch(e.target.value); setPage(1);}}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             />
           </div>
         </div>
@@ -239,16 +251,16 @@ export default function LinksPage() {
                     <h3 className="font-bold text-lg truncate">{link.name}</h3>
                   </div>
                   <Button variant="ghost" size="icon" asChild className="shrink-0 h-8 w-8">
-                    <a 
-                      href={link.url} 
-                      target="_blank" 
+                    <a
+                      href={link.url}
+                      target="_blank"
                       rel="noopener noreferrer"
                     >
                       <ExternalLink className="size-4" />
                     </a>
                   </Button>
                 </div>
-                
+
                 <p className="text-muted-foreground text-sm line-clamp-2 mb-6 flex-1">
                   {link.description || 'No description provided'}
                 </p>
@@ -261,14 +273,14 @@ export default function LinksPage() {
                     </Badge>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => openEditLink(link)}
                     ><Edit2 className="size-4" /></Button>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => setLinkToDelete(link._id)}
@@ -283,15 +295,15 @@ export default function LinksPage() {
         {totalPages > 1 && (
           <div className="flex justify-center gap-2 mt-8">
             {[...Array(totalPages)].map((_, i) => (
-                <Button
-                    key={i}
-                    variant={page === i + 1 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setPage(i + 1)}
-                    className="w-9 h-9 p-0"
-                >
-                    {i + 1}
-                </Button>
+              <Button
+                key={i}
+                variant={page === i + 1 ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPage(i + 1)}
+                className="w-9 h-9 p-0"
+              >
+                {i + 1}
+              </Button>
             ))}
           </div>
         )}
@@ -303,10 +315,10 @@ export default function LinksPage() {
           </div>
         )}
 
-        <LinkModal 
-          isOpen={isLinkModalOpen} 
-          onClose={() => setIsLinkModalOpen(false)} 
-          onSuccess={() => fetchLinks(true)}
+        <LinkModal
+          isOpen={isLinkModalOpen}
+          onClose={() => setIsLinkModalOpen(false)}
+          onSuccess={() => fetchLinks()}
           link={editingLink}
           categories={categories.website}
           accessToken={(session as any)?.accessToken}
@@ -315,7 +327,7 @@ export default function LinksPage() {
         <CategoryModal
           isOpen={isCatModalOpen}
           onClose={() => setIsCatModalOpen(false)}
-          onSuccess={() => fetchCategories(true)}
+          onSuccess={() => fetchCategories()}
           type="website"
           accessToken={(session as any)?.accessToken}
         />

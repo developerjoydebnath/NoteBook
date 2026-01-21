@@ -28,20 +28,23 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminPage() {
-  const { data: session } = useSession();
-  const { users, fetched, setUsers } = useDataStore();
-  const [loading, setLoading] = useState(!fetched.users);
+  const { data: session, status } = useSession();
+  const users = useDataStore((state) => state.users);
+  const usersFetched = useDataStore((state) => state.fetched.users);
+  const setUsers = useDataStore((state) => state.setUsers);
+  const [loading, setLoading] = useState(!usersFetched);
   const [userToDelete, setUserToDelete] = useState<any>(null);
 
   const fetchUsers = useCallback(async (force = false) => {
-    if (!session || (fetched.users && !force)) return;
-    
+    if (status !== 'authenticated' || !session) return;
+    if (usersFetched && !force) return;
+
     if (force) setLoading(true);
     try {
       const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/admin/users`, {
         headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
       }, (session as any)?.accessToken);
-      
+
       if (res && res.ok) {
         const data = await res.json();
         setUsers(data);
@@ -51,11 +54,13 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [session, fetched.users, setUsers]);
+  }, [session?.user, status, usersFetched, setUsers]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    if (status === 'authenticated') {
+      fetchUsers();
+    }
+  }, [status, fetchUsers]);
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
@@ -94,7 +99,7 @@ export default function AdminPage() {
 
   if (loading) return (
     <AppLayout>
-       <div className="space-y-6">
+      <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-4 w-96 text-muted-foreground" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -184,7 +189,7 @@ export default function AdminPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete User?</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete &quot;{userToDelete?.username}&quot;? 
+                Are you sure you want to delete &quot;{userToDelete?.username}&quot;?
                 This will permanently delete their account and all associated notes, links, and categories. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>

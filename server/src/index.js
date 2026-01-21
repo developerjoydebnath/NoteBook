@@ -26,6 +26,11 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
     origin: (origin, callback) => {
+        // Log origin for debugging in development
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Request from origin:', origin || 'No Origin');
+        }
+        
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
         
