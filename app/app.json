@@ -1,9 +1,10 @@
 {
   "expo": {
     "name": "NoteBook",
-    "slug": "notebook-app",
+    "slug": "notebook",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
     "scheme": "notebook",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,18 +13,62 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
-      }
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "package": "com.joydebnath.plexus.notebook",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-        "expo-router"
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "jsEngine": "hermes",
+            "enableProguardInReleaseBuilds": true,
+            "enableR8": true,
+            "enableShrinkResources": true,
+            "extraProguardRules": "-keep class com.joydebnath.plexus.notebook.** { *; }"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6ecd0595-1e36-4440-a658-4d21ee188a5a"
+      }
+    },
+    "owner": "joydebnath.plexus",
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://note-book-api-server.vercel.app/api"
+      }
     }
   }
 }

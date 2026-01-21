@@ -2,8 +2,9 @@ import { useFocusEffect } from 'expo-router';
 import { FileText, Link as LinkIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Dimensions, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Dimensions, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { BarChart, PieChart } from 'react-native-gifted-charts';
+import Skeleton from '../../components/Skeleton';
 import { api } from '../../lib/api';
 import { useDataStore } from '../../store/useDataStore';
 
@@ -42,8 +43,38 @@ export default function DashboardScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center bg-gray-50 dark:bg-gray-900">
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900 p-4">
+        <View className="mb-6">
+          <Skeleton width={120} height={28} className="mb-2" />
+          <Skeleton width={180} height={18} />
+        </View>
+
+        <View className="flex-row justify-between mb-6">
+          <View className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-slate-700 flex-1 mr-2 items-center">
+            <Skeleton width={40} height={40} borderRadius={20} className="mb-2" />
+            <Skeleton width={30} height={24} className="mb-2" />
+            <Skeleton width={60} height={12} />
+          </View>
+          <View className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-slate-700 flex-1 ml-2 items-center">
+            <Skeleton width={40} height={40} borderRadius={20} className="mb-2" />
+            <Skeleton width={30} height={24} className="mb-2" />
+            <Skeleton width={60} height={12} />
+          </View>
+        </View>
+
+        <View className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-slate-700 mb-6">
+          <Skeleton width={140} height={22} className="mb-6" />
+          <View className="items-center">
+            <Skeleton width="90%" height={150} />
+          </View>
+        </View>
+
+        <View className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-slate-700">
+          <Skeleton width={100} height={22} className="mb-6" />
+          <View className="items-center">
+            <Skeleton width={160} height={160} borderRadius={80} />
+          </View>
+        </View>
       </View>
     );
   }

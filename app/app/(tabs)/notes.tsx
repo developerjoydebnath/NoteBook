@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { ChevronRight, FileText, Plus, Search } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { FlatList, RefreshControl, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Skeleton from '../../components/Skeleton';
 import { api } from '../../lib/api';
 import { useDataStore } from '../../store/useDataStore';
 
@@ -41,23 +42,40 @@ export default function NotesScreen() {
     note.content?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const NoteSkeleton = () => (
+    <View className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 mb-3">
+      <View className="flex-row items-start">
+        <Skeleton width={36} height={36} borderRadius={8} className="mr-3" />
+        <View className="flex-1">
+          <Skeleton width="60%" height={20} className="mb-2" />
+          <Skeleton width="90%" height={16} className="mb-1" />
+          <Skeleton width="40%" height={16} className="mb-2" />
+          <View className="flex-row items-center mt-2">
+            <Skeleton width={60} height={14} borderRadius={4} />
+            <Skeleton width={80} height={14} className="ml-auto" />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+
   const renderNote = ({ item }: { item: any }) => (
     <TouchableOpacity
-      className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-3"
+      className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 mb-3"
       onPress={() => router.push({ pathname: '/modal', params: { type: 'note', id: item._id } })}
     >
       <View className="flex-row items-start">
-        <View className="bg-blue-100 p-2 rounded-lg mr-3">
+        <View className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
           <FileText size={20} color="#3b82f6" />
         </View>
         <View className="flex-1">
-          <Text className="text-lg font-bold text-gray-900 mb-1" numberOfLines={1}>{item.title}</Text>
-          <Text className="text-gray-500 text-sm" numberOfLines={2}>{item.content}</Text>
+          <Text className="text-lg font-bold text-gray-900 dark:text-white mb-1" numberOfLines={1}>{item.title}</Text>
+          <Text className="text-gray-500 dark:text-gray-400 text-sm" numberOfLines={2}>{item.content}</Text>
           <View className="flex-row items-center mt-2">
-            <View className="bg-gray-100 px-2 py-0.5 rounded-md">
-              <Text className="text-gray-500 text-[10px]">{item.categoryId?.name || 'General'}</Text>
+            <View className="bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
+              <Text className="text-gray-500 dark:text-gray-400 text-[10px]">{item.categoryId?.name || 'General'}</Text>
             </View>
-            <Text className="text-gray-400 text-[10px] ml-auto">
+            <Text className="text-gray-400 dark:text-gray-500 text-[10px] ml-auto">
               {new Date(item.createdAt).toLocaleDateString()}
             </Text>
           </View>
@@ -83,33 +101,9 @@ export default function NotesScreen() {
       </View>
 
       <FlatList
-        data={filteredNotes}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 mb-3"
-            onPress={() => router.push({ pathname: '/modal', params: { type: 'note', id: item._id } })}
-          >
-            <View className="flex-row items-start">
-              <View className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
-                <FileText size={20} color="#3b82f6" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-lg font-bold text-gray-900 dark:text-white mb-1" numberOfLines={1}>{item.title}</Text>
-                <Text className="text-gray-500 dark:text-gray-400 text-sm" numberOfLines={2}>{item.content}</Text>
-                <View className="flex-row items-center mt-2">
-                  <View className="bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
-                    <Text className="text-gray-500 dark:text-gray-400 text-[10px]">{item.categoryId?.name || 'General'}</Text>
-                  </View>
-                  <Text className="text-gray-400 dark:text-gray-500 text-[10px] ml-auto">
-                    {new Date(item.createdAt).toLocaleDateString()}
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={20} color="#cbd5e1" className="ml-2" />
-            </View>
-          </TouchableOpacity>
-        )}
+        data={loading ? [1, 2, 3, 4, 5] : filteredNotes}
+        keyExtractor={(item, index) => loading ? `skeleton-${index}` : item._id}
+        renderItem={loading ? () => <NoteSkeleton /> : renderNote}
         contentContainerStyle={{ padding: 16 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
