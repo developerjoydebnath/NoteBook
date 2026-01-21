@@ -1,17 +1,14 @@
 import { Tabs } from 'expo-router';
-import { FileText, LayoutDashboard, Link, LogOut, Moon, Sun, User } from 'lucide-react-native';
-import { useState } from 'react';
+import { FileText, LayoutDashboard, Link, LogOut, Moon, Shield, Sun, User } from 'lucide-react-native';
+import { useColorScheme } from 'nativewind';
 import { TouchableOpacity, View } from 'react-native';
 import { useAuthStore } from '../../store/useAuthStore';
 
 export default function TabsLayout() {
-  const { clearAuth } = useAuthStore();
-  const [isDark, setIsDark] = useState(false);
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    // Add actual theme switching logic here if available
-  };
+  const { clearAuth, user } = useAuthStore();
+  const { colorScheme, toggleColorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const isAdmin = user?.role === 'admin';
 
   return (
     <Tabs screenOptions={{
@@ -21,13 +18,21 @@ export default function TabsLayout() {
         paddingBottom: 10,
         paddingTop: 5,
         height: 65,
+        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+        borderTopColor: isDark ? '#334155' : '#e2e8f0',
+      },
+      headerStyle: {
+        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+      },
+      headerTitleStyle: {
+        color: isDark ? '#ffffff' : '#000000',
       },
       headerRight: () => (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 15 }}>
-          <TouchableOpacity onPress={toggleTheme} style={{ marginRight: 15 }}>
+        <View className='flex-row items-center mr-4'>
+          <TouchableOpacity onPress={toggleColorScheme} className="mr-4 rounded-md p-1">
             {isDark ? <Sun size={22} color="#3b82f6" /> : <Moon size={22} color="#64748b" />}
           </TouchableOpacity>
-          <TouchableOpacity onPress={clearAuth}>
+          <TouchableOpacity onPress={clearAuth} className="rounded-md p-1">
             <LogOut size={22} color="#ef4444" />
           </TouchableOpacity>
         </View>
@@ -52,6 +57,14 @@ export default function TabsLayout() {
         options={{
           title: 'Links',
           tabBarIcon: ({ color }) => <Link size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Admin',
+          href: isAdmin ? '/admin' : null,
+          tabBarIcon: ({ color }) => <Shield size={24} color={color} />,
         }}
       />
       <Tabs.Screen

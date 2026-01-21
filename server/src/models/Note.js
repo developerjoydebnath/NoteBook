@@ -6,6 +6,10 @@ const noteSchema = new mongoose.Schema({
     categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     tags: [{ type: String, trim: true }],
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-}, { timestamps: true });
+}, { 
+    timestamps: true,
+    bufferCommands: false 
+});
 
-export default mongoose.model('Note', noteSchema);
+const Note = mongoose.models.Note || mongoose.model('Note', noteSchema);
+export default Note;

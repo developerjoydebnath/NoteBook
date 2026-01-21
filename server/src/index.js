@@ -26,17 +26,25 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Log origin for debugging in development
-        if (process.env.NODE_ENV === 'development') {
-            console.log('Request from origin:', origin || 'No Origin');
+        // Log origin for debugging
+        if (process.env.NODE_ENV === 'development' || !origin) {
+            console.log('Request from origin:', origin || 'No Origin (Mobile/Server-side)');
         }
         
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
         
-        if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+        // List of allowed mobile-specific origins just in case
+        const mobileOrigins = ['capacitor://localhost', 'http://localhost', 'exp://'];
+        
+        if (
+            allowedOrigins.includes(origin) || 
+            mobileOrigins.some(mo => origin.startsWith(mo)) ||
+            process.env.NODE_ENV === 'development'
+        ) {
             callback(null, true);
         } else {
+            console.error('Blocked by CORS:', origin);
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -44,19 +52,68 @@ app.use(cors({
 }));
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB: notes'))
-    .catch((err) => {
-        console.error('MongoDB connection error details:');
-        console.error('Code:', err.code);
-        console.error('Reason:', err.message);
-        if (err.message.includes('ECONNREFUSED')) {
-            console.error('\nTIP: This often means your IP is not whitelisted in MongoDB Atlas or you have a DNS issue.');
-            console.error('Log into MongoDB Atlas -> Network Access -> Add Current IP Address.');
+// Set global options for better error handling in serverless
+mongoose.set('bufferCommands', false);
+mongoose.set('bufferTimeoutMS', 5000);
+
+let cachedDB = null;
+
+// MongoDB Connection
+mongoose.set('bufferCommands', false);
+
+const connectDB = async () => {
+    try {
+        if (mongoose.connection.readyState === 1) {
+            return;
         }
-    });
+
+        const uri = process.env.MONGODB_URI;
+        if (!uri) {
+            throw new Error('MONGODB_URI is missing from environment variables');
+        }
+
+        console.log('Attempting MongoDB connection...');
+        
+        await mongoose.connect(uri, {
+            serverSelectionTimeoutMS: 8000, // 8 seconds
+            connectTimeoutMS: 8000,
+            dbName: 'notes'
+        });
+        
+        console.log('MongoDB Connected');
+    } catch (err) {
+        console.error('MongoDB Connection Error:', err.message);
+        throw err;
+    }
+};
+
+// Middleware to ensure DB connection
+app.use(async (req, res, next) => {
+    // Health check doesn't need DB
+    if (req.path === '/api/health') return next();
+
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        res.status(503).json({ 
+            error: 'Database Connection Failed', 
+            message: error.message,
+            uri_check: process.env.MONGODB_URI ? 'URI exists' : 'URI MISSING',
+            tip: 'If URI exists and 0.0.0.0/0 is added, double check your Atlas password and database name.'
+        });
+    }
+});
 
 // Routes
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        env: process.env.NODE_ENV
+    });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/links', linkRoutes);

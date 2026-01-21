@@ -2,8 +2,8 @@ import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
 // In Expo development, use your computer's IP address instead of localhost
-// 192.168.1.108 is the current machine's IP
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.108:5000/api';
+// Live API: https://note-book-api-server.vercel.app/api
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://note-book-api-server.vercel.app/api';
 
 export const api = axios.create({
   baseURL: API_URL,

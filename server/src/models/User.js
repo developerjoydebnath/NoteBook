@@ -29,7 +29,11 @@ const userSchema = new mongoose.Schema({
     },
     resetPasswordToken: String,
     resetPasswordExpires: Date
-}, { timestamps: true });
+}, { 
+    timestamps: true,
+    bufferCommands: false, // Disable buffering specifically for this schema
+    autoIndex: true 
+});
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
@@ -49,5 +53,5 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 export default User;

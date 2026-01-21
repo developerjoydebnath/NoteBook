@@ -16,7 +16,7 @@ export default function RootLayout() {
 
     if (!accessToken && inAuthGroup) {
       router.replace('/login');
-    } else if (accessToken && segments[0] !== '(tabs)') {
+    } else if (accessToken && segments[0] !== '(tabs)' && segments[0] !== 'modal') {
       router.replace('/(tabs)');
     }
   }, [accessToken, segments]);

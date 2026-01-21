@@ -31,6 +31,17 @@ export const getLinks = async (req, res) => {
     }
 };
 
+export const getLinkById = async (req, res) => {
+    try {
+        const link = await WebsiteLink.findOne({ _id: req.params.id, userId: req.user._id })
+            .populate('categoryId', 'name');
+        if (!link) return res.status(404).json({ message: 'Link not found' });
+        res.json(link);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 export const createLink = async (req, res) => {
     try {
         const { name, url, categoryId, description } = req.body;
