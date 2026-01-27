@@ -12,14 +12,14 @@ import { useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -239,6 +239,9 @@ export default function LinksPage() {
                   </Button>
                 </div>
 
+                <p className="text-primary/70 text-xs truncate mb-2">
+                  {link?.url || 'https://example.com'}
+                </p>
                 <p className="text-muted-foreground text-sm line-clamp-2 mb-6 flex-1">
                   {link.description || 'No description provided'}
                 </p>
