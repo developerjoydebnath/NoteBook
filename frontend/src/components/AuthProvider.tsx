@@ -17,5 +17,5 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, [setAuth]);
 
-  return <SessionProvider>{children}</SessionProvider>;
+  return <SessionProvider refetchOnWindowFocus={false}>{children}</SessionProvider>;
 }
