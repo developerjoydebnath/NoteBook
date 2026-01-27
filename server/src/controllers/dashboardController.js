@@ -1,5 +1,6 @@
 import Category from '../models/Category.js';
 import Note from '../models/Note.js';
+import Video from '../models/Video.js';
 import WebsiteLink from '../models/WebsiteLink.js';
 
 export const getStats = async (req, res) => {
@@ -8,6 +9,7 @@ export const getStats = async (req, res) => {
 
         const totalNotes = await Note.countDocuments({ userId });
         const totalLinks = await WebsiteLink.countDocuments({ userId });
+        const totalVideos = await Video.countDocuments({ userId });
 
         const categoryStats = await Category.aggregate([
             { $match: { userId } },
@@ -28,10 +30,18 @@ export const getStats = async (req, res) => {
                 }
             },
             {
+                $lookup: {
+                    from: 'videos',
+                    localField: '_id',
+                    foreignField: 'categoryId',
+                    as: 'videos'
+                }
+            },
+            {
                 $project: {
                     name: 1,
                     type: 1,
-                    count: { $add: [{ $size: '$notes' }, { $size: '$links' }] }
+                    count: { $add: [{ $size: '$notes' }, { $size: '$links' }, { $size: '$videos' }] }
                 }
             }
         ]);
@@ -58,16 +68,23 @@ export const getStats = async (req, res) => {
                 createdAt: { $gte: date, $lt: nextDay }
             });
 
+            const videosCount = await Video.countDocuments({
+                userId,
+                createdAt: { $gte: date, $lt: nextDay }
+            });
+
             return {
                 date: date.toLocaleDateString('en-US', { weekday: 'short' }),
                 notes: notesCount,
                 links: linksCount,
+                videos: videosCount,
             };
         }));
 
         res.json({
             totalNotes,
             totalLinks,
+            totalVideos,
             categoryStats,
             activityData,
         });

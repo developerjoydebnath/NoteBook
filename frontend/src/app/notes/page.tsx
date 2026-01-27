@@ -8,7 +8,8 @@ import { useDataStore } from '@/store/useDataStore';
 import { useUIStore } from '@/store/useUIStore';
 import { Calendar, Edit2, FolderPlus, Plus, Search, Tag, Trash2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
 
 import {
   AlertDialog,
@@ -26,17 +27,15 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function NotesPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const { layoutMode } = useUIStore();
   const notes = useDataStore((state) => state.notes);
   const categories = useDataStore((state) => state.categories);
-  const notesFetched = useDataStore((state) => state.fetched.notes);
   const setNotes = useDataStore((state) => state.setNotes);
   const setCategories = useDataStore((state) => state.setCategories);
 
   const [activeCategory, setActiveCategory] = useState('all');
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(!notesFetched);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -49,55 +48,37 @@ export default function NotesPage() {
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
 
-  const fetchNotes = useCallback(async () => {
-    if (status !== 'authenticated' || !session) return;
+  const { mutate } = useSWRConfig();
 
-    setLoading(true);
-    try {
-      const catQuery = activeCategory === 'all' ? '' : `&category=${activeCategory}`;
-      const searchQuery = search ? `&search=${search}` : '';
-      const res = await fetchApi(
-        `${process.env.NEXT_PUBLIC_API_URL}/notes?page=${page}${catQuery}${searchQuery}`,
-        {
-          headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
-        },
-        (session as any)?.accessToken
-      );
-      if (res && res.ok) {
-        const data = await res.json();
-        setNotes(data.notes || []);
-        setTotalPages(data.totalPages || 1);
-      }
-    } catch (err) {
-      console.error('Failed to fetch notes:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [session?.user, status, activeCategory, search, page, setNotes]);
+  const catQuery = activeCategory === 'all' ? '' : `&category=${activeCategory}`;
+  const searchQuery = search ? `&search=${search}` : '';
+  const notesUrl = status === 'authenticated' ? `/notes?page=${page}${catQuery}${searchQuery}` : null;
+  const categoriesUrl = status === 'authenticated' ? `/categories?type=note` : null;
 
-  const fetchCategories = useCallback(async () => {
-    if (status !== 'authenticated' || !session) return;
-    try {
-      const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/categories?type=note`, {
-        headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
-      }, (session as any)?.accessToken);
-      if (res && res.ok) {
-        const data = await res.json();
-        setCategories('note', data || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch categories:', err);
+  const { data: notesData, isLoading: notesLoading } = useSWR(notesUrl);
+  const { data: categoriesData, isLoading: categoriesLoading } = useSWR(categoriesUrl);
+
+  // Sync with store if needed, or just use local data
+  useEffect(() => {
+    if (notesData) {
+      setNotes(notesData.notes || []);
+      setTotalPages(notesData.totalPages || 1);
     }
-  }, [session?.user, status, setCategories]);
+  }, [notesData, setNotes]);
+
+  useEffect(() => {
+    if (categoriesData) {
+      setCategories('note', categoriesData || []);
+    }
+  }, [categoriesData, setCategories]);
 
   const handleDeleteNote = async () => {
     if (!noteToDelete) return;
     try {
       const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/notes/${noteToDelete}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
-      }, (session as any)?.accessToken);
-      if (res && res.ok) fetchNotes();
+      });
+      if (res && res.ok) mutate(notesUrl);
     } catch (err) {
       console.error('Delete failed:', err);
     } finally {
@@ -110,12 +91,11 @@ export default function NotesPage() {
     try {
       const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/categories/${categoryToDelete._id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
-      }, (session as any)?.accessToken);
+      });
       if (res && res.ok) {
         if (activeCategory === categoryToDelete._id) setActiveCategory('all');
-        fetchCategories();
-        fetchNotes();
+        mutate(categoriesUrl);
+        mutate(notesUrl);
       }
     } catch (err) {
       console.error('Delete failed:', err);
@@ -134,17 +114,7 @@ export default function NotesPage() {
     setIsNoteModalOpen(true);
   };
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetchNotes();
-    }
-  }, [status, fetchNotes]);
-
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetchCategories();
-    }
-  }, [status, fetchCategories]);
+  const loading = notesLoading;
 
   return (
     <AppLayout>
@@ -183,27 +153,33 @@ export default function NotesPage() {
             >
               All
             </Button>
-            {categories.note.map((cat: any) => (
-              <div key={cat._id} className="group/cat relative flex items-center shrink-0">
-                <Button
-                  variant={activeCategory === cat._id ? "default" : "secondary"}
-                  size="sm"
-                  onClick={() => { setActiveCategory(cat._id); setPage(1); }}
-                  className={`rounded-full h-8 whitespace-nowrap ${activeCategory === cat._id ? 'pr-8' : 'group-hover/cat:pr-8'} transition-all`}
-                >
-                  {cat.name}
-                </Button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCategoryToDelete(cat);
-                  }}
-                  className={`absolute right-2 p-1 rounded-full hover:bg-destructive/20 text-destructive opacity-0 group-hover/cat:opacity-100 transition-opacity ${activeCategory === cat._id ? 'opacity-100' : ''}`}
-                >
-                  <Trash2 className="size-3" />
-                </button>
-              </div>
-            ))}
+            {categoriesLoading ? (
+              [...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-8 w-20 rounded-full shrink-0" />
+              ))
+            ) : (
+              categories.note.map((cat: any) => (
+                <div key={cat._id} className="group/cat relative flex items-center shrink-0">
+                  <Button
+                    variant={activeCategory === cat._id ? "default" : "secondary"}
+                    size="sm"
+                    onClick={() => { setActiveCategory(cat._id); setPage(1); }}
+                    className={`rounded-full h-8 whitespace-nowrap ${activeCategory === cat._id ? 'pr-8' : 'group-hover/cat:pr-8'} transition-all`}
+                  >
+                    {cat.name}
+                  </Button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCategoryToDelete(cat);
+                    }}
+                    className={`absolute right-2 p-1 cursor-pointer rounded-full opacity-0 group-hover/cat:opacity-100 transition-opacity ${activeCategory === cat._id ? 'opacity-100 text-background hover:bg-background/20' : 'text-destructive hover:bg-destructive/20'}`}
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
@@ -307,18 +283,16 @@ export default function NotesPage() {
         <NoteModal
           isOpen={isNoteModalOpen}
           onClose={() => setIsNoteModalOpen(false)}
-          onSuccess={() => fetchNotes()}
+          onSuccess={() => mutate(notesUrl)}
           note={editingNote}
           categories={categories.note}
-          accessToken={(session as any)?.accessToken}
         />
 
         <CategoryModal
           isOpen={isCatModalOpen}
           onClose={() => setIsCatModalOpen(false)}
-          onSuccess={() => fetchCategories()}
+          onSuccess={() => { mutate(categoriesUrl); mutate(notesUrl); }}
           type="note"
-          accessToken={(session as any)?.accessToken}
         />
 
         {/* Delete Note Dialog */}

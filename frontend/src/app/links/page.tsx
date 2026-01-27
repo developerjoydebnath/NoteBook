@@ -7,7 +7,8 @@ import { fetchApi } from '@/lib/api';
 import { useDataStore } from '@/store/useDataStore';
 import { Edit2, ExternalLink, FolderPlus, Link as LinkIcon, Plus, Search, Tag, Trash2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
 
 import {
   AlertDialog,
@@ -25,16 +26,14 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function LinksPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const links = useDataStore((state) => state.links);
   const categories = useDataStore((state) => state.categories);
-  const linksFetched = useDataStore((state) => state.fetched.links);
   const setLinks = useDataStore((state) => state.setLinks);
   const setCategories = useDataStore((state) => state.setCategories);
 
   const [activeCategory, setActiveCategory] = useState('all');
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(!linksFetched);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -47,55 +46,37 @@ export default function LinksPage() {
   const [linkToDelete, setLinkToDelete] = useState<string | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
 
-  const fetchLinks = useCallback(async () => {
-    if (status !== 'authenticated' || !session) return;
+  const { mutate } = useSWRConfig();
 
-    setLoading(true);
-    try {
-      const catQuery = activeCategory === 'all' ? '' : `&category=${activeCategory}`;
-      const searchQuery = search ? `&search=${search}` : '';
-      const res = await fetchApi(
-        `${process.env.NEXT_PUBLIC_API_URL}/links?page=${page}${catQuery}${searchQuery}`,
-        {
-          headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
-        },
-        (session as any)?.accessToken
-      );
-      if (res && res.ok) {
-        const data = await res.json();
-        setLinks(data.links || []);
-        setTotalPages(data.totalPages || 1);
-      }
-    } catch (err) {
-      console.error('Failed to fetch links:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [session?.user, status, activeCategory, search, page, setLinks]);
+  const catQuery = activeCategory === 'all' ? '' : `&category=${activeCategory}`;
+  const searchQuery = search ? `&search=${search}` : '';
+  const linksUrl = status === 'authenticated' ? `/links?page=${page}${catQuery}${searchQuery}` : null;
+  const categoriesUrl = status === 'authenticated' ? `/categories?type=website` : null;
 
-  const fetchCategories = useCallback(async () => {
-    if (status !== 'authenticated' || !session) return;
-    try {
-      const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/categories?type=website`, {
-        headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
-      }, (session as any)?.accessToken);
-      if (res && res.ok) {
-        const data = await res.json();
-        setCategories('website', data || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch categories:', err);
+  const { data: linksData, isLoading: linksLoading } = useSWR(linksUrl);
+  const { data: categoriesData, isLoading: categoriesLoading } = useSWR(categoriesUrl);
+
+  // Sync with store if needed
+  useEffect(() => {
+    if (linksData) {
+      setLinks(linksData.links || []);
+      setTotalPages(linksData.totalPages || 1);
     }
-  }, [session?.user, status, setCategories]);
+  }, [linksData, setLinks]);
+
+  useEffect(() => {
+    if (categoriesData) {
+      setCategories('website', categoriesData || []);
+    }
+  }, [categoriesData, setCategories]);
 
   const handleDeleteLink = async () => {
     if (!linkToDelete) return;
     try {
       const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/links/${linkToDelete}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
-      }, (session as any)?.accessToken);
-      if (res && res.ok) fetchLinks();
+      });
+      if (res && res.ok) mutate(linksUrl);
     } catch (err) {
       console.error('Delete failed:', err);
     } finally {
@@ -108,12 +89,11 @@ export default function LinksPage() {
     try {
       const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/categories/${categoryToDelete._id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
-      }, (session as any)?.accessToken);
+      });
       if (res && res.ok) {
         if (activeCategory === categoryToDelete._id) setActiveCategory('all');
-        fetchCategories();
-        fetchLinks();
+        mutate(categoriesUrl);
+        mutate(linksUrl);
       }
     } catch (err) {
       console.error('Delete failed:', err);
@@ -132,17 +112,7 @@ export default function LinksPage() {
     setIsLinkModalOpen(true);
   };
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetchLinks();
-    }
-  }, [status, fetchLinks]);
-
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetchCategories();
-    }
-  }, [status, fetchCategories]);
+  const loading = linksLoading;
 
   return (
     <AppLayout>
@@ -181,27 +151,33 @@ export default function LinksPage() {
             >
               All
             </Button>
-            {categories.website.map((cat: any) => (
-              <div key={cat._id} className="group/cat relative flex items-center shrink-0">
-                <Button
-                  variant={activeCategory === cat._id ? "default" : "secondary"}
-                  size="sm"
-                  onClick={() => { setActiveCategory(cat._id); setPage(1); }}
-                  className={`rounded-full h-8 whitespace-nowrap ${activeCategory === cat._id ? 'pr-8' : 'group-hover/cat:pr-8'} transition-all`}
-                >
-                  {cat.name}
-                </Button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCategoryToDelete(cat);
-                  }}
-                  className={`absolute right-2 p-1 rounded-full hover:bg-destructive/20 text-destructive opacity-0 group-hover/cat:opacity-100 transition-opacity ${activeCategory === cat._id ? 'opacity-100' : ''}`}
-                >
-                  <Trash2 className="size-3" />
-                </button>
-              </div>
-            ))}
+            {categoriesLoading ? (
+              [...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-8 w-20 rounded-full shrink-0" />
+              ))
+            ) : (
+              categories.website.map((cat: any) => (
+                <div key={cat._id} className="group/cat relative flex items-center shrink-0">
+                  <Button
+                    variant={activeCategory === cat._id ? "default" : "secondary"}
+                    size="sm"
+                    onClick={() => { setActiveCategory(cat._id); setPage(1); }}
+                    className={`rounded-full h-8 whitespace-nowrap ${activeCategory === cat._id ? 'pr-8' : 'group-hover/cat:pr-8'} transition-all`}
+                  >
+                    {cat.name}
+                  </Button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCategoryToDelete(cat);
+                    }}
+                    className={`absolute right-2 p-1 cursor-pointer rounded-full opacity-0 group-hover/cat:opacity-100 transition-opacity ${activeCategory === cat._id ? 'opacity-100 text-background hover:bg-background/20' : 'text-destructive hover:bg-destructive/20'}`}
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
@@ -318,18 +294,16 @@ export default function LinksPage() {
         <LinkModal
           isOpen={isLinkModalOpen}
           onClose={() => setIsLinkModalOpen(false)}
-          onSuccess={() => fetchLinks()}
+          onSuccess={() => mutate(linksUrl)}
           link={editingLink}
           categories={categories.website}
-          accessToken={(session as any)?.accessToken}
         />
 
         <CategoryModal
           isOpen={isCatModalOpen}
           onClose={() => setIsCatModalOpen(false)}
-          onSuccess={() => fetchCategories()}
+          onSuccess={() => { mutate(categoriesUrl); mutate(linksUrl); }}
           type="website"
-          accessToken={(session as any)?.accessToken}
         />
 
         {/* Delete Link Dialog */}

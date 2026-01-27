@@ -1,77 +1,68 @@
 'use client';
 
-import { fetchApi } from '@/lib/api';
-import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
-import 'react-quill-new/dist/quill.snow.css';
-
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
 } from '@/components/ui/select';
+import { fetchApi } from '@/lib/api';
+import { useEffect, useState } from 'react';
 
-const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
-
-interface NoteModalProps {
+interface VideoModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  note?: any;
+  video?: any;
   categories: any[];
 }
 
-export default function NoteModal({ isOpen, onClose, onSuccess, note, categories }: NoteModalProps) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+export default function VideoModal({ isOpen, onClose, onSuccess, video, categories }: VideoModalProps) {
+  const [url, setUrl] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      if (note) {
-        setTitle(note.title);
-        setContent(note.content);
-        setCategoryId(note.categoryId?._id || note.categoryId || 'none');
+      if (video) {
+        setUrl(video.url);
+        setCategoryId(video.categoryId?._id || video.categoryId || 'none');
       } else {
-        setTitle('');
-        setContent('');
+        setUrl('');
         setCategoryId('none');
       }
     }
-  }, [note, isOpen]);
+  }, [video, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const url = note 
-      ? `${process.env.NEXT_PUBLIC_API_URL}/notes/${note._id}` 
-      : `${process.env.NEXT_PUBLIC_API_URL}/notes`;
+    const apiUrl = video 
+      ? `${process.env.NEXT_PUBLIC_API_URL}/videos/${video._id}` 
+      : `${process.env.NEXT_PUBLIC_API_URL}/videos`;
     
-    const method = note ? 'PUT' : 'POST';
+    const method = video ? 'PUT' : 'POST';
 
     try {
-      const res = await fetchApi(url, {
+      const res = await fetchApi(apiUrl, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          title, 
-          content, 
+          url, 
           categoryId: categoryId === 'none' ? null : categoryId 
         }),
       });
@@ -81,7 +72,7 @@ export default function NoteModal({ isOpen, onClose, onSuccess, note, categories
         onClose();
       }
     } catch (err) {
-      console.error('Failed to save note:', err);
+      console.error('Failed to save video:', err);
     } finally {
       setLoading(false);
     }
@@ -89,21 +80,25 @@ export default function NoteModal({ isOpen, onClose, onSuccess, note, categories
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{note ? 'Edit Note' : 'Add New Note'}</DialogTitle>
+          <DialogTitle>{video ? 'Edit Video' : 'Add YouTube Video'}</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="url">YouTube Video Link</Label>
             <Input
-              id="title"
+              id="url"
+              type="url"
               required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Note title..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://youtu.be/..."
             />
+            <p className="text-[10px] text-muted-foreground italic">
+              Title and thumbnail will be automatically fetched.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -126,19 +121,7 @@ export default function NoteModal({ isOpen, onClose, onSuccess, note, categories
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Content</Label>
-            <div className="h-48 sm:h-64 mb-16 sm:mb-12">
-              <ReactQuill
-                theme="snow"
-                value={content}
-                onChange={setContent}
-                className="h-32 sm:h-48"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-3">
+          <DialogFooter className="gap-3 pt-4">
             <Button
               type="button"
               variant="outline"
@@ -150,7 +133,7 @@ export default function NoteModal({ isOpen, onClose, onSuccess, note, categories
               type="submit"
               disabled={loading}
             >
-              {loading ? 'Saving...' : 'Save Note'}
+              {loading ? 'Saving...' : 'Save Video'}
             </Button>
           </DialogFooter>
         </form>

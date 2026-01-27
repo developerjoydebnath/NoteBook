@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useUIStore } from '@/store/useUIStore';
-import { LayoutGrid, Link as LinkIcon, List, LogOut, Moon, Shield, Sun } from 'lucide-react';
+import { LayoutGrid, Link as LinkIcon, List, LogOut, Moon, Shield, Sun, Youtube } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -17,6 +17,7 @@ export default function Sidebar() {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid },
     { name: 'Notes', path: '/notes', icon: List },
     { name: 'Links', path: '/links', icon: LinkIcon },
+    { name: 'Videos', path: '/videos', icon: Youtube },
   ];
 
   if ((session?.user as any)?.role === 'admin') {
@@ -24,7 +25,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-card border-r border-border flex flex-col p-4 z-50">
+    <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-card border-r border-border flex-col p-4 z-50">
       <div className="flex items-center gap-2 mb-8 px-2">
         <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
           <span className="text-primary-foreground font-bold italic">K</span>

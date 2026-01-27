@@ -3,7 +3,7 @@
 import AppLayout from '@/components/AppLayout';
 import { fetchApi } from '@/lib/api';
 import { useDataStore } from '@/store/useDataStore';
-import { Activity, FileText, Link as LinkIcon, PieChart as PieChartIcon } from 'lucide-react';
+import { Activity, FileText, Link as LinkIcon, PieChart as PieChartIcon, Youtube } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -36,7 +36,7 @@ export default function DashboardPage() {
         headers: {
           Authorization: `Bearer ${(session as any)?.accessToken}`,
         },
-      }, (session as any)?.accessToken);
+      }); 
 
       if (res && res.ok) {
         const data = await res.json();
@@ -47,7 +47,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [session?.user, status, statsFetched, setStats]);
+  }, [session, status, statsFetched, setStats]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -104,6 +104,16 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground mt-1">Your bookmarks</p>
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">YouTube Videos</CardTitle>
+              <Youtube className="size-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.totalVideos || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">Playlist items</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Charts */}
@@ -144,6 +154,7 @@ export default function DashboardPage() {
                     />
                     <Bar dataKey="notes" fill="currentColor" className="fill-primary" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="links" fill="currentColor" className="fill-muted-foreground/30" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="videos" fill="currentColor" className="fill-primary/40" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

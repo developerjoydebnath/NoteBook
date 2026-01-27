@@ -2,20 +2,20 @@
 
 import { Button } from '@/components/ui/button';
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { fetchApi } from '@/lib/api';
@@ -27,10 +27,9 @@ interface LinkModalProps {
   onSuccess: () => void;
   link?: any;
   categories: any[];
-  accessToken: string;
 }
 
-export default function LinkModal({ isOpen, onClose, onSuccess, link, categories, accessToken }: LinkModalProps) {
+export default function LinkModal({ isOpen, onClose, onSuccess, link, categories }: LinkModalProps) {
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [description, setDescription] = useState('');
@@ -38,18 +37,20 @@ export default function LinkModal({ isOpen, onClose, onSuccess, link, categories
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (link) {
-      setName(link.name);
-      setUrl(link.url);
-      setDescription(link.description || '');
-      setCategoryId(link.categoryId?._id || link.categoryId || 'none');
-    } else {
-      setName('');
-      setUrl('');
-      setDescription('');
-      setCategoryId('none');
+    if (isOpen) {
+      if (link) {
+        setName(link.name);
+        setUrl(link.url);
+        setDescription(link.description || '');
+        setCategoryId(link.categoryId?._id || link.categoryId || 'none');
+      } else {
+        setName('');
+        setUrl('');
+        setDescription('');
+        setCategoryId('none');
+      }
     }
-  }, [link, categories, isOpen]);
+  }, [link, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +67,6 @@ export default function LinkModal({ isOpen, onClose, onSuccess, link, categories
         method,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ 
           name, 
@@ -74,7 +74,7 @@ export default function LinkModal({ isOpen, onClose, onSuccess, link, categories
           description, 
           categoryId: categoryId === 'none' ? null : categoryId 
         }),
-      }, accessToken);
+      });
 
       if (res && res.ok) {
         onSuccess();
@@ -94,7 +94,7 @@ export default function LinkModal({ isOpen, onClose, onSuccess, link, categories
           <DialogTitle>{link ? 'Edit Link' : 'Add Website Link'}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="name">Website Name</Label>
             <Input
@@ -149,7 +149,7 @@ export default function LinkModal({ isOpen, onClose, onSuccess, link, categories
             />
           </div>
 
-          <DialogFooter className="gap-3 sm:gap-0 pt-4">
+          <DialogFooter className="gap-3 pt-4">
             <Button
               type="button"
               variant="outline"

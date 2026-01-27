@@ -8,22 +8,22 @@ import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useState } from 'react';
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -43,7 +43,7 @@ export default function AdminPage() {
     try {
       const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/admin/users`, {
         headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
-      }, (session as any)?.accessToken);
+      });
 
       if (res && res.ok) {
         const data = await res.json();
@@ -54,7 +54,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [session?.user, status, usersFetched, setUsers]);
+  }, [session, status, usersFetched, setUsers]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -68,7 +68,7 @@ export default function AdminPage() {
       const res = await fetchApi(`${process.env.NEXT_PUBLIC_API_URL}/admin/users/${userToDelete._id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
-      }, (session as any)?.accessToken);
+      });
       if (res && res.ok) {
         fetchUsers(true);
       }
@@ -88,7 +88,7 @@ export default function AdminPage() {
           Authorization: `Bearer ${(session as any)?.accessToken}`
         },
         body: JSON.stringify({ role: newRole }),
-      }, (session as any)?.accessToken);
+      });
       if (res && res.ok) {
         fetchUsers(true);
       }

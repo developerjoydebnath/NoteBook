@@ -1,15 +1,15 @@
 'use client';
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUIStore } from '@/store/useUIStore';
-import { LayoutGrid, Link as LinkIcon, List, LogOut, Moon, MoreHorizontal, Shield, Sun } from 'lucide-react';
+import { LayoutGrid, Link as LinkIcon, List, LogOut, Moon, MoreHorizontal, Shield, Sun, Youtube } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -22,6 +22,7 @@ export default function BottomNav() {
   const navItems = [
     { name: 'Home', path: '/dashboard', icon: LayoutGrid },
     { name: 'Notes', path: '/notes', icon: List },
+    { name: 'Videos', path: '/videos', icon: Youtube },
     { name: 'Links', path: '/links', icon: LinkIcon },
   ];
 

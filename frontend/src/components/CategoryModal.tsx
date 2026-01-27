@@ -2,11 +2,11 @@
 
 import { Button } from '@/components/ui/button';
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,11 +17,10 @@ interface CategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  type: 'note' | 'website';
-  accessToken: string;
+  type: 'note' | 'website' | 'video';
 }
 
-export default function CategoryModal({ isOpen, onClose, onSuccess, type, accessToken }: CategoryModalProps) {
+export default function CategoryModal({ isOpen, onClose, onSuccess, type }: CategoryModalProps) {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -34,10 +33,9 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, type, access
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ name, type }),
-      }, accessToken);
+      });
 
       if (res && res.ok) {
         setName('');
@@ -55,11 +53,11 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, type, access
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-[95vw] sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>New {type === 'note' ? 'Note' : 'Link'} Category</DialogTitle>
+          <DialogTitle>New {type === 'note' ? 'Note' : type === 'website' ? 'Link' : 'Video'} Category</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-2 mt-4">
             <Label htmlFor="category-name">Category Name</Label>
             <Input
               id="category-name"
@@ -70,7 +68,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, type, access
             />
           </div>
 
-          <DialogFooter className="gap-3 sm:gap-0 pt-4">
+          <DialogFooter className="gap-3 pt-4">
             <Button
               type="button"
               variant="outline"

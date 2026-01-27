@@ -11,13 +11,21 @@ export const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'Not authorized, no token' });
     }
 
-    const decoded = verifyToken(token, process.env.JWT_SECRET);
-    if (!decoded) {
-        return res.status(401).json({ message: 'Not authorized, token failed' });
-    }
+    try {
+        const decoded = verifyToken(token, process.env.JWT_SECRET);
+        if (!decoded) {
+            return res.status(401).json({ message: 'Not authorized, token failed' });
+        }
 
-    req.user = await User.findById(decoded.id).select('-password');
-    next();
+        req.user = await User.findById(decoded.id).select('-password');
+        if (!req.user) {
+            return res.status(401).json({ message: 'User not found' });
+        }
+        next();
+    } catch (error) {
+        console.error('Auth middleware error:', error.message);
+        res.status(401).json({ message: 'Not authorized, token failed' });
+    }
 };
 
 export const adminOnly = (req, res, next) => {

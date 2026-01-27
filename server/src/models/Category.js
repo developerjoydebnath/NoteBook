@@ -2,11 +2,11 @@ import mongoose from 'mongoose';
 
 const categorySchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
-    type: { type: String, enum: ['note', 'website'], required: true },
+    type: { type: String, enum: ['note', 'website', 'video'], required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-}, { 
+}, {
     timestamps: true,
-    bufferCommands: false 
+    bufferCommands: false
 });
 
 // Ensure unique category names per user and type
