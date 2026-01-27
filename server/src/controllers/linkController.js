@@ -2,7 +2,7 @@ import WebsiteLink from '../models/WebsiteLink.js';
 
 export const getLinks = async (req, res) => {
     try {
-        const { category, search, page = 1, limit = 10 } = req.query;
+        const { category, search, page = 1, limit = 12 } = req.query;
         const query = { userId: req.user._id };
 
         if (category) query.categoryId = category;
