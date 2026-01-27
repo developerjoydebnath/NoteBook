@@ -226,7 +226,12 @@ export default function LinksPage() {
                     <div className="p-2 bg-primary/10 rounded-md shrink-0">
                       <LinkIcon className="text-primary size-4" />
                     </div>
+                    <div className="flex flex-col gap-0.5">
                     <h3 className="font-bold text-lg truncate">{link.name}</h3>
+                    <p className="text-primary/70 text-xs truncate">
+                      {link?.url || 'https://example.com'}
+                    </p>
+                    </div>
                   </div>
                   <Button variant="ghost" size="icon" asChild className="shrink-0 h-8 w-8">
                     <a
@@ -239,9 +244,6 @@ export default function LinksPage() {
                   </Button>
                 </div>
 
-                <p className="text-primary/70 text-xs truncate mb-2">
-                  {link?.url || 'https://example.com'}
-                </p>
                 <p className="text-muted-foreground text-sm line-clamp-2 mb-6 flex-1">
                   {link.description || 'No description provided'}
                 </p>
