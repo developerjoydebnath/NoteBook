@@ -3,6 +3,7 @@
 import AppLayout from '@/components/AppLayout';
 import CategoryModal from '@/components/CategoryModal';
 import VideoModal from '@/components/VideoModal';
+import { useDebounce } from '@/hooks/useDebounce';
 import { fetchApi } from '@/lib/api';
 import { useDataStore } from '@/store/useDataStore';
 import { Edit2, FolderPlus, Play, Plus, Search, Trash2, Youtube } from 'lucide-react';
@@ -35,6 +36,7 @@ export default function VideosPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
 
   // Modal states
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -46,9 +48,10 @@ export default function VideosPage() {
   const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
 
   const { mutate } = useSWRConfig();
+  const debouncedSearch = useDebounce(search, 1000);
 
   const catQuery = activeCategory === 'all' ? '' : `&category=${activeCategory}`;
-  const searchQuery = search ? `&search=${search}` : '';
+  const searchQuery = debouncedSearch ? `&search=${debouncedSearch}` : '';
   const videosUrl = status === 'authenticated' ? `/videos?limit=100${catQuery}${searchQuery}` : null;
   const categoriesUrl = status === 'authenticated' ? `/categories?type=video` : null;
 
@@ -63,6 +66,10 @@ export default function VideosPage() {
       }
     }
   }, [videosData, setVideos, selectedVideo]);
+
+  useEffect(() => {
+     setIsDescExpanded(false);
+  }, [selectedVideo]);
 
   useEffect(() => {
     if (categoriesData) {
@@ -225,6 +232,27 @@ export default function VideosPage() {
                       onClick={() => setVideoToDelete(selectedVideo._id)}
                     ><Trash2 className="size-4" /></Button>
                   </div>
+                </div>
+
+                {/* Video Description */}
+                <div className="bg-muted/40 rounded-xl p-4 transition-all group/desc">
+                  {selectedVideo.description ? (
+                    <>
+                      <p className={`text-sm whitespace-pre-wrap ${!isDescExpanded ? 'line-clamp-3' : ''}`}>
+                        {selectedVideo.description}
+                      </p>
+                      <button 
+                        onClick={() => setIsDescExpanded(!isDescExpanded)}
+                        className="text-xs font-bold mt-2 text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+                      >
+                        {isDescExpanded ? 'Show less' : '...more'}
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">
+                      No description available for this video.
+                    </p>
+                  )}
                 </div>
               </div>
             ) : videosLoading ? (

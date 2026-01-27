@@ -45,20 +45,47 @@ export const createVideo = async (req, res) => {
             return res.status(400).json({ message: 'Invalid YouTube URL' });
         }
 
-        // Fetch video info using YouTube OEmbed API
+        // Fetch video info using YouTube OEmbed API and HTML meta tags
         let title = 'YouTube Video';
         let thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+        let description = '';
 
         try {
+            const config = {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                },
+                timeout: 5000
+            };
+
             const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-            const response = await axios.get(oembedUrl, { timeout: 5000 });
-            if (response.data) {
-                title = response.data.title;
-                thumbnailUrl = response.data.thumbnail_url || thumbnailUrl;
+            const oembedRes = await axios.get(oembedUrl, config);
+            if (oembedRes.data) {
+                title = oembedRes.data.title;
+                thumbnailUrl = oembedRes.data.thumbnail_url || thumbnailUrl;
+            }
+
+            // Fetch description from meta tags
+            const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            const watchRes = await axios.get(watchUrl, config);
+            const html = watchRes.data;
+
+            // Multiple patterns to catch description
+            const descMatch =
+                html.match(/<meta\s+name="description"\s+content="([^"]*)"/i) ||
+                html.match(/<meta\s+property="og:description"\s+content="([^"]*)"/i) ||
+                html.match(/"shortDescription":"([^"]*)"/i);
+
+            if (descMatch && descMatch[1]) {
+                description = descMatch[1]
+                    .replace(/&quot;/g, '"')
+                    .replace(/&amp;/g, '&')
+                    .replace(/&#39;/g, "'")
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>');
             }
         } catch (fetchError) {
-            console.error('Failed to fetch video title:', fetchError.message);
-            // Fallback to default title if fetch fails
+            console.error('Failed to fetch video info:', fetchError.message);
         }
 
         const video = await Video.create({
@@ -66,6 +93,7 @@ export const createVideo = async (req, res) => {
             url,
             videoId,
             thumbnailUrl,
+            description,
             embedUrl: `https://www.youtube.com/embed/${videoId}`,
             categoryId: categoryId || null,
             userId: req.user._id,

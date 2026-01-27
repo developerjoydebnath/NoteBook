@@ -3,6 +3,7 @@
 import AppLayout from '@/components/AppLayout';
 import CategoryModal from '@/components/CategoryModal';
 import LinkModal from '@/components/LinkModal';
+import { useDebounce } from '@/hooks/useDebounce';
 import { fetchApi } from '@/lib/api';
 import { useDataStore } from '@/store/useDataStore';
 import { Edit2, ExternalLink, FolderPlus, Link as LinkIcon, Plus, Search, Tag, Trash2 } from 'lucide-react';
@@ -11,14 +12,14 @@ import { useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -47,9 +48,10 @@ export default function LinksPage() {
   const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
 
   const { mutate } = useSWRConfig();
+  const debouncedSearch = useDebounce(search, 1000);
 
   const catQuery = activeCategory === 'all' ? '' : `&category=${activeCategory}`;
-  const searchQuery = search ? `&search=${search}` : '';
+  const searchQuery = debouncedSearch ? `&search=${debouncedSearch}` : '';
   const linksUrl = status === 'authenticated' ? `/links?page=${page}${catQuery}${searchQuery}` : null;
   const categoriesUrl = status === 'authenticated' ? `/categories?type=website` : null;
 

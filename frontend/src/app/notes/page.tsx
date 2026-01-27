@@ -3,6 +3,7 @@
 import AppLayout from '@/components/AppLayout';
 import CategoryModal from '@/components/CategoryModal';
 import NoteModal from '@/components/NoteModal';
+import { useDebounce } from '@/hooks/useDebounce';
 import { fetchApi } from '@/lib/api';
 import { useDataStore } from '@/store/useDataStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -12,14 +13,14 @@ import { useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -49,9 +50,10 @@ export default function NotesPage() {
   const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
 
   const { mutate } = useSWRConfig();
+  const debouncedSearch = useDebounce(search, 1000);
 
   const catQuery = activeCategory === 'all' ? '' : `&category=${activeCategory}`;
-  const searchQuery = search ? `&search=${search}` : '';
+  const searchQuery = debouncedSearch ? `&search=${debouncedSearch}` : '';
   const notesUrl = status === 'authenticated' ? `/notes?page=${page}${catQuery}${searchQuery}` : null;
   const categoriesUrl = status === 'authenticated' ? `/categories?type=note` : null;
 
